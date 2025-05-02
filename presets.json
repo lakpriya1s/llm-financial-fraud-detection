@@ -1,0 +1,7 @@
+[
+  {
+    "name": "Llama-160M-Chat-v1-fraud-detection",
+    "model": "lakpriya/Llama-160M-Chat-v1-fraud-detection-onnx",
+    "onnx_path": "onnx"
+  }
+]
