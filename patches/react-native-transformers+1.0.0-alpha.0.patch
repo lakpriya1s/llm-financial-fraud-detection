@@ -1,0 +1,195 @@
+diff --git a/node_modules/react-native-transformers/lib/commonjs/models/base.js b/node_modules/react-native-transformers/lib/commonjs/models/base.js
+index 8aaae53..56fd6e6 100644
+--- a/node_modules/react-native-transformers/lib/commonjs/models/base.js
++++ b/node_modules/react-native-transformers/lib/commonjs/models/base.js
+@@ -33,7 +33,7 @@ class Base {
+       graphOptimizationLevel: "all"
+     };
+     if (options.externalData) {
+-      opt.externalData = [await fetch(getHuggingfaceUrl(model, onnx_file + "_data"))];
++      opt.externalData = [await fetch(getHuggingfaceUrl(model, options.fileExtension !==  ".data" ?  onnx_file + "_data" : onnx_file + ".data"))];
+     }
+     if (verbose) {
+       opt.logSeverityLevel = 0;
+@@ -70,16 +70,22 @@ class Base {
+     const start = t.dims[2] * (t.dims[1] - 1);
+     let max = arr[start];
+     let maxidx = 0;
++    
+     for (let i = 0; i < t.dims[2]; i++) {
+       const val = arr[i + start];
++      
++      // Check for NaN or Infinity
+       if (!isFinite(val)) {
++        console.error("Logits contain an invalid value: ", val);
+         throw new Error("found infinitive in logits");
+       }
++      
+       if (val > max) {
+         max = val;
+         maxidx = i;
+       }
+     }
++    
+     return maxidx;
+   }
+   updateKVCache(feed, outputs) {
+diff --git a/node_modules/react-native-transformers/lib/commonjs/models/text-generation.js b/node_modules/react-native-transformers/lib/commonjs/models/text-generation.js
+index 5d45b8c..37c70e3 100644
+--- a/node_modules/react-native-transformers/lib/commonjs/models/text-generation.js
++++ b/node_modules/react-native-transformers/lib/commonjs/models/text-generation.js
+@@ -39,6 +39,10 @@ class TextGeneration extends _base.Base {
+     let sequenceLength = this.outputTokens.length;
+     const initialLength = feed.input_ids.size;
+     
++    // Track the number of new tokens generated
++    let newTokensGenerated = 0;
++    const MAX_NEW_TOKENS = 5; // Hard-coded limit of 5 new tokens
++
+     // Prepare position IDs if needed
+     if (this.needPositionIds) {
+       feed.position_ids = new _onnxruntimeReactNative.Tensor("int64", BigInt64Array.from({
+@@ -50,7 +54,12 @@ class TextGeneration extends _base.Base {
+     }
+ 
+     // Generate tokens until the end of sequence token is found or max tokens limit is reached
+-    while (lastToken !== this.eos && lastToken !== 32007n && sequenceLength < maxTokens && !this.stopGeneration) {
++    while (lastToken !== this.eos && 
++           lastToken !== 32007n && 
++           sequenceLength < maxTokens && 
++           !this.stopGeneration &&
++           newTokensGenerated < MAX_NEW_TOKENS) {  // Added condition for new tokens limit
++      
+       sequenceLength = this.outputTokens.length;
+       feed.attention_mask = new _onnxruntimeReactNative.Tensor("int64", BigInt64Array.from({
+         length: sequenceLength
+@@ -58,6 +67,10 @@ class TextGeneration extends _base.Base {
+       const outputs = await this.sess.run(feed);
+       lastToken = BigInt(this.argmax(outputs.logits));
+       this.outputTokens.push(lastToken);
++      
++      // Increment the counter for new tokens generated
++      newTokensGenerated++;
++      
+       if (callback) {
+         callback(this.outputTokens);
+       }
+diff --git a/node_modules/react-native-transformers/lib/commonjs/pipelines/text-generation.js b/node_modules/react-native-transformers/lib/commonjs/pipelines/text-generation.js
+index 5a7ac0a..a131877 100644
+--- a/node_modules/react-native-transformers/lib/commonjs/pipelines/text-generation.js
++++ b/node_modules/react-native-transformers/lib/commonjs/pipelines/text-generation.js
+@@ -7,8 +7,8 @@ exports.default = void 0;
+ var _transformers = require("@xenova/transformers");
+ var _textGeneration = require("../models/text-generation.js");
+ // Set up environment for transformers.js tokenizer
+-_transformers.env.allowRemoteModels = true;
+-_transformers.env.allowLocalModels = false;
++_transformers.env.allowRemoteModels = false;
++_transformers.env.allowLocalModels = true;
+ 
+ // Declare tokenizer and model
+ let tokenizer;
+@@ -80,15 +80,16 @@ async function generate(prompt, callback = () => {}) {
+  * Loads the model and tokenizer with the specified options.
+  *
+  * @param model_name - The name of the model to load.
++ * @param model_path - The path to the model to load.
+  * @param onnx_path - The path to the ONNX model.
+  * @param options - Optional initialization options.
+  */
+-async function init(model_name, onnx_path, options) {
++async function init(model_name, model_path, onnx_path, options) {
+   _options = {
+     ..._options,
+     ...options
+   };
+-  tokenizer = await _transformers.AutoTokenizer.from_pretrained(model_name);
++  tokenizer = await _transformers.AutoTokenizer.from_pretrained(model_path.replace("file:///", ""));
+   await model.load(model_name, onnx_path, _options);
+ }
+ 
+diff --git a/node_modules/react-native-transformers/lib/module/models/base.js b/node_modules/react-native-transformers/lib/module/models/base.js
+index fa889c2..268fca1 100644
+--- a/node_modules/react-native-transformers/lib/module/models/base.js
++++ b/node_modules/react-native-transformers/lib/module/models/base.js
+@@ -29,7 +29,7 @@ export class Base {
+       graphOptimizationLevel: "all"
+     };
+     if (options.externalData) {
+-      opt.externalData = [await fetch(getHuggingfaceUrl(model, onnx_file + "_data"))];
++      opt.externalData = [await fetch(getHuggingfaceUrl(model, options.fileExtension !==  ".data" ?  onnx_file + "_data" : onnx_file + ".data"))];
+     }
+     if (verbose) {
+       opt.logSeverityLevel = 0;
+@@ -66,16 +66,22 @@ export class Base {
+     const start = t.dims[2] * (t.dims[1] - 1);
+     let max = arr[start];
+     let maxidx = 0;
++    
+     for (let i = 0; i < t.dims[2]; i++) {
+       const val = arr[i + start];
++      
++      // Check for NaN or Infinity
+       if (!isFinite(val)) {
++        console.error("Logits contain an invalid value: ", val);
+         throw new Error("found infinitive in logits");
+       }
++      
+       if (val > max) {
+         max = val;
+         maxidx = i;
+       }
+     }
++    
+     return maxidx;
+   }
+   updateKVCache(feed, outputs) {
+diff --git a/node_modules/react-native-transformers/src/models/base.tsx b/node_modules/react-native-transformers/src/models/base.tsx
+index 62b3d6a..b36db5f 100644
+--- a/node_modules/react-native-transformers/src/models/base.tsx
++++ b/node_modules/react-native-transformers/src/models/base.tsx
+@@ -16,6 +16,7 @@ export interface LoadOptions {
+   externalData: boolean;
+   fetch: (url: string) => Promise<string>;
+   executionProviders: InferenceSession.ExecutionProviderConfig[];
++  fileExtension: string;
+ }
+ 
+ export class Base {
+@@ -50,9 +51,7 @@ export class Base {
+     };
+ 
+     if (options.externalData) {
+-      opt.externalData = [
+-        await fetch(getHuggingfaceUrl(model, onnx_file + "_data")),
+-      ];
++      opt.externalData = [await fetch(getHuggingfaceUrl(model, options.fileExtension !==  ".data" ?  onnx_file + "_data" : onnx_file + ".data"))];
+     }
+ 
+     if (verbose) {
+diff --git a/node_modules/react-native-transformers/src/pipelines/text-generation.tsx b/node_modules/react-native-transformers/src/pipelines/text-generation.tsx
+index 17a12ea..af5e54f 100644
+--- a/node_modules/react-native-transformers/src/pipelines/text-generation.tsx
++++ b/node_modules/react-native-transformers/src/pipelines/text-generation.tsx
+@@ -88,16 +88,20 @@ async function generate(
+  * Loads the model and tokenizer with the specified options.
+  *
+  * @param model_name - The name of the model to load.
++ * @param model_path - The path to the model to load.
+  * @param onnx_path - The path to the ONNX model.
+  * @param options - Optional initialization options.
+  */
+ async function init(
+   model_name: string,
++  model_path: string,
+   onnx_path: string,
+   options?: Partial<InitOptions>,
+ ): Promise<void> {
+   _options = { ..._options, ...options };
+-  tokenizer = await AutoTokenizer.from_pretrained(model_name);
++  tokenizer = await AutoTokenizer.from_pretrained(model_path.replace("file:///", ""), {
++    local_files_only: true,
++  });
+   await model.load(model_name, onnx_path, _options);
+ }
+ 
