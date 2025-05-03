@@ -3,5 +3,30 @@
     "name": "Llama-160M-Chat-v1-fraud-detection",
     "model": "lakpriya/Llama-160M-Chat-v1-fraud-detection-onnx",
     "onnx_path": "onnx"
+  },
+  {
+    "name": "Minueza-32M-Chat-fraud-detection",
+    "model": "lakpriya/Minueza-32M-Chat-fraud-detection-onnx",
+    "onnx_path": "onnx"
+  },
+  {
+    "name": "SmolLM2-135M-Instruct-fraud-detection",
+    "model": "lakpriya/SmolLM2-135M-Instruct-fraud-detection-onnx",
+    "onnx_path": "onnx"
+  },
+  {
+    "name": "Llama-3.2-1B-Instruct-fraud-detection",
+    "model": "lakpriya/Llama-3.2-1B-Instruct-fraud-detection-onnx",
+    "onnx_path": "onnx"
+  },
+  {
+    "name": "TinyLlama-1.1B-Chat-v1.0-fraud-detection",
+    "model": "lakpriya/TinyLlama-1.1B-Chat-v1.0-fraud-detection-onnx",
+    "onnx_path": "onnx"
+  },
+  {
+    "name": "Qwen1.5-0.5B-Chat-fraud-detection",
+    "model": "lakpriya/Qwen1.5-0.5B-Chat-fraud-detection-onnx",
+    "onnx_path": "onnx"
   }
 ]
