@@ -329,6 +329,7 @@ export const loadModel = async (
       preset.model,
       modelDirPath,
       preset.onnx_path,
+      // @ts-ignore
       {
         verbose: true,
         fetch: fetchWithCache,
@@ -337,7 +338,7 @@ export const loadModel = async (
     );
 
     if (!isCancelled) {
-      setProgress(1); // Ensure progress reaches 100% after completion
+      setProgress(1);
       setStatus("Model loaded successfully");
       onComplete();
       console.log("Loaded.");

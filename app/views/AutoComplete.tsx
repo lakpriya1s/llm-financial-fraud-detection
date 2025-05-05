@@ -50,9 +50,6 @@ const AutoComplete = ({
   const handlePipelineComplete = (output: string) => {
     setLoading(false);
     setOutput(output);
-    // Only measure time for first 3 letters since that's what determines fraud
-    const firstThreeLetters = output.substring(0, 3).toLowerCase();
-    const isFraud = firstThreeLetters.includes("yes");
     if (detectionTime.current) return;
     detectionTime.current = Date.now() - startTime;
   };
@@ -97,8 +94,6 @@ const AutoComplete = ({
     setLoading(true);
     Pipeline.TextGeneration.generate(chatPrompt, handlePipelineComplete);
   }, [input]);
-
-  // console.log("OUTPUT ==> ", output);
 
   const isFraud = output?.toLowerCase().includes("yes");
   const isOutputComplete = !!output && output.length >= 3;
@@ -238,14 +233,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   closeButtonText: {
     fontSize: 24,
     fontWeight: "bold",
-    color: '#666',
+    color: "#666",
   },
   loadingText: {
     marginTop: 16,
